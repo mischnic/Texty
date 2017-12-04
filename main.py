@@ -1,41 +1,39 @@
 #!/usr/bin/env python3
 import os, sys
-from PyQt5 import QtCore, QtGui, QtWidgets
-from Window import Ui_MainWindow
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
  
-class Texty(Ui_MainWindow):
-	def __init__(self, window):
-		Ui_MainWindow.__init__(self)
-		self.setupUi(window)
+class Texty(QtWidgets.QWidget):
+	def __init__(self):
+		QtWidgets.QDialog.__init__(self)
 
-		self.window = window
+		self.window = uic.loadUi("Window.ui")
 		self.curFile = None
 		self.unsavedChanges = False
 
-		self.window.setWindowTitle("Texty - Untitled[*]")
+		self._setTitle(None)
  
-		self.textBrowser.textChanged.connect(self.onTextChange)
+		self.window.textBrowser.textChanged.connect(self._onTextChange)
 
 		# http://pyqt.sourceforge.net/Docs/PyQt4/qkeysequence.html#StandardKey-enum
-		self.actionNew.triggered.connect(self.onNew)
-		self.actionNew.setShortcut(QtGui.QKeySequence.New)
+		self.window.actionNew.triggered.connect(self._onNew)
+		self.window.actionNew.setShortcut(QtGui.QKeySequence.New)
 
-		self.actionOpen.triggered.connect(self.onOpen)
-		self.actionOpen.setShortcut(QtGui.QKeySequence.Open)
+		self.window.actionOpen.triggered.connect(self._onOpen)
+		self.window.actionOpen.setShortcut(QtGui.QKeySequence.Open)
 
-		self.actionSave.triggered.connect(self.onSave)
-		self.actionSave.setShortcut(QtGui.QKeySequence.Save)
+		self.window.actionSave.triggered.connect(self._onSave)
+		self.window.actionSave.setShortcut(QtGui.QKeySequence.Save)
 
-		self.actionSaveAs.triggered.connect(self.onSave_as)
-		self.actionSaveAs.setShortcut(QtGui.QKeySequence.SaveAs)
+		self.window.actionSaveAs.triggered.connect(self._onSave_as)
+		self.window.actionSaveAs.setShortcut(QtGui.QKeySequence.SaveAs)
 
-		self.window.closeEvent = self.closeEvent
+		self.window.closeEvent = self._closeEvent
 
 
-	def closeEvent(self, event):
+	def _closeEvent(self, event):
 		if self.unsavedChanges:
 			msgBox = QtWidgets.QMessageBox()
-			msgBox.setText('There are unsave changes\n\n')
+			msgBox.setText('There are unsave changes\n')
 			msgBox.setStyleSheet("font-weight: normal;");
 			msgBox.addButton(QtWidgets.QPushButton("Save"), QtWidgets.QMessageBox.YesRole)
 			msgBox.addButton(QtWidgets.QPushButton("Discard"), QtWidgets.QMessageBox.NoRole)
@@ -52,62 +50,61 @@ class Texty(Ui_MainWindow):
 				event.ignore()
  
 
-	def setTitle(self, path):
+	def _setTitle(self, path):
 		self.window.setWindowFilePath(path)
 		self.window.setWindowTitle("Texty - " + ("<{}>".format(os.path.basename(path)) if path is not None else "Untitled") + "[*]")
 
-	def setChanged(self, state):
+	def _setChanged(self, state):
 		self.unsavedChanges = state
 		self.window.setWindowModified(state)
 
-	def loadFile(self, path):
+	def _loadFile(self, path):
 		with open(path, "r") as f:
-			self.textBrowser.setPlainText(f.read())
-		self.setChanged(False)
+			self.window.textBrowser.setPlainText(f.read())
+		self._setChanged(False)
 
-	def saveFile(self, path, content):
+	def _saveFile(self, path, content):
 		with open(path, "w") as f:
 			f.write(content)
-		self.setChanged(False)
+		self._setChanged(False)
 		return True
 
-	def onTextChange(self):
-		self.setChanged(True)
+	def _onTextChange(self):
+		self._setChanged(True)
 
-	def onNew(self):
+	def _onNew(self):
 		self.curFile = None
-		self.textBrowser.setPlainText("")
-		self.setChanged(False)
-		self.setTitle(None)
+		self.window.textBrowser.setPlainText("")
+		self._setChanged(False)
+		self._setTitle(None)
 
-	def onOpen(self):
+	def _onOpen(self):
 		newPath, _ = QtWidgets.QFileDialog.getOpenFileName(self.window) or None
 		if newPath:
 			self.curFile = newPath
-			self.setTitle(self.curFile)
-			self.loadFile(self.curFile)
+			self._setTitle(self.curFile)
+			self._loadFile(self.curFile)
 
 
-	def onSave(self):
+	def _onSave(self):
 		if self.curFile is None:
-			return self.onSave_as()
+			return self._onSave_as()
 		else:
-			return self.saveFile(self.curFile, self.textBrowser.toPlainText())
+			return self._saveFile(self.curFile, self.window.textBrowser.toPlainText())
 
-	def onSave_as(self):
+	def _onSave_as(self):
 		newPath, _ = QtWidgets.QFileDialog.getSaveFileName(self.window) or None
 		if newPath:
 			self.curFile = newPath
-			self.setTitle(self.curFile)
-			self.saveFile(self.curFile, self.textBrowser.toPlainText())
+			self._setTitle(self.curFile)
+			self._saveFile(self.curFile, self.window.textBrowser.toPlainText())
 			return True
 		return False
  
 if __name__ == '__main__':
 	app = QtWidgets.QApplication(sys.argv)
-	win = QtWidgets.QMainWindow()
  
-	prog = Texty(win)
+	prog = Texty()
  
-	win.show()
+	prog.window.show()
 	sys.exit(app.exec_())
